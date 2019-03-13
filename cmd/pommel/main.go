@@ -3,14 +3,22 @@ package main
 import (
 	"fmt"
 
-	"git.target.com/ae-authentication/pommel"
+	"github.com/alee792/pommel"
 )
 
 func main() {
-	pom := pommel.NewClient()
-	raw, err := pom.ParseAndRead()
+	pom, args, err := pommel.CLI()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(raw))
+	raw, err := pom.Read(args.Path, args.Key)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Do you want to display this secret? (y/n)")
+	var in string
+	fmt.Scanln(&in)
+	if in == "y" {
+		fmt.Println(string(raw))
+	}
 }
