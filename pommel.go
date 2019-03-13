@@ -29,12 +29,7 @@ type Pommel struct {
 func NewPommel(prefix string) *Pommel {
 	p := new(Pommel)
 	p.Prefix = prefix
-	p.FlagSet = flag.NewFlagSet("", flag.ExitOnError)
-	p.FlagSet.StringVar(&p.Addr, "addr", "", "vault Addr")
-	p.FlagSet.StringVar(&p.TokenPath, "tkn", "~/.vault-token", "token path")
-	p.FlagSet.StringVar(&p.Path, "path", "", "vault path")
-	p.FlagSet.StringVar(&p.Key, "key", "", "key for json value")
-	_ = p.FlagSet.String("cfg", "", "path to json creds")
+	arg.MustParse(&p)
 	return p
 }
 
