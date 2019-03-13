@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	pom := pommel.NewPommel("")
+	pom := pommel.NewClient()
 	raw, err := pom.ParseAndRead()
 	if err != nil {
 		panic(err)

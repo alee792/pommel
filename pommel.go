@@ -1,105 +1,97 @@
 // Package pommel extracts a JSON encoded byte slice from Vault.
+// Pommel does NOT provide authentication or a valid token.
 package pommel
 
 import (
-	"flag"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"strings"
 
+	arg "github.com/alexflint/go-arg"
 	"github.com/hashicorp/vault/api"
-	"github.com/peterbourgon/ff"
 	"github.com/pkg/errors"
 )
 
-// Pommel resolves secrets from Vault.
-type Pommel struct {
-	FlagSet   *flag.FlagSet
+// Args from the command line.
+type Args struct {
 	Addr      string `arg:"-a" help:"vault addr"`
-	Token     string
 	TokenPath string `arg:"-t" help:"path to token"`
-	Path      string `arg:"-p" help:"path to value"`
+	Path      string `arg:"-p,required" help:"path to value"`
 	Key       string `arg:"-k,required" help:"key for value"`
-	Prefix    string
+}
+
+// Client resolves secrets from Vault.
+type Client struct {
+	Args   *Args
+	Token  string
+	Prefix string
 	*api.Client
 }
 
-// NewPommel allows clients to insert their own flags before parsing.
-func NewPommel(prefix string) *Pommel {
-	p := new(Pommel)
-	p.Prefix = prefix
-	arg.MustParse(&p)
-	return p
+// NewClient instantiates a client.
+func NewClient() *Client {
+	a := new(Args)
+	arg.MustParse(a)
+	a.TokenPath = "~/.vault-token"
+	return &Client{
+		Args: a,
+	}
 }
 
 // ParseAndRead is convenient if no custom CL args are needed.
-func (p *Pommel) ParseAndRead() ([]byte, error) {
-	if err := p.Parse(); err != nil {
+func (c *Client) ParseAndRead() ([]byte, error) {
+	if err := c.Parse(); err != nil {
 		return nil, err
 	}
-	return p.Read()
+	return c.Read()
 }
 
 // Parse command-line args and create Vault Client.
-func (p *Pommel) Parse() error {
-	opts := []ff.Option{
-		ff.WithConfigFileFlag("path"),
-		ff.WithConfigFileParser(ff.JSONParser),
-	}
-	if p.Prefix != "" {
-		opts = append(opts, ff.WithEnvVarPrefix(p.Prefix))
-	}
-	err := ff.Parse(p.FlagSet, os.Args[1:], opts...)
-	if err != nil {
-		return err
-	}
-
-	if err := p.validate(); err != nil {
-		return err
-	}
-
-	// If no address is given, localhost will be used.
-	if p.Addr == "" {
-		p.Addr = os.Getenv("VAULT_ADDR")
+func (c *Client) Parse() error {
+	if c.Args.Addr == "" {
+		c.Args.Addr = os.Getenv("VAULT_ADDR")
 	}
 
 	// Expand "~" to absolute path.
-	if strings.Contains(p.TokenPath, "~") {
+	if strings.Contains(c.Args.TokenPath, "~") {
 		usr, _ := user.Current()
-		p.TokenPath = strings.Replace(p.TokenPath, "~", usr.HomeDir, -1)
+		c.Args.TokenPath = strings.Replace(c.Args.TokenPath, "~", usr.HomeDir, -1)
 	}
-	tkn, err := ioutil.ReadFile(p.TokenPath)
+	tkn, err := ioutil.ReadFile(c.Args.TokenPath)
 	if err != nil {
-		return errors.Wrap(err, "invalid token path")
+		return errors.Wrapf(err, "invalid token path %s", c.Args.TokenPath)
 	}
-	p.Token = string(tkn)
+	c.Token = string(tkn)
 	client, err := api.NewClient(&api.Config{
-		Address: p.Addr,
+		Address: c.Args.Addr,
 	})
 	if err != nil {
 		return errors.Wrap(err, "Could not create client. Are you logged in?")
 	}
-	p.Client = client
+	c.Client = client
 	return nil
 }
 
 // Read from Vault.
-func (p *Pommel) Read() ([]byte, error) {
-	p.SetToken(p.Token)
-	secret, err := p.Logical().Read(p.Path)
+func (c *Client) Read() ([]byte, error) {
+	c.SetToken(c.Token)
+	secret, err := c.Logical().Read(c.Args.Path)
 	if err != nil {
 		return nil, err
 	}
-	v := secret.Data[p.Key]
-	return v.([]byte), nil
+	v, ok := secret.Data[c.Args.Key]
+	if !ok {
+		return nil, errors.New("key does not exist")
+	}
+	return []byte(v.(string)), nil
 }
 
-func (p *Pommel) validate() error {
-	if p.Path == "" {
+func (c *Client) validate() error {
+	if c.Args.Path == "" {
 		return errors.New("path is required")
 	}
-	if p.Key == "" {
+	if c.Args.Key == "" {
 		return errors.New("key is required")
 	}
 	return nil

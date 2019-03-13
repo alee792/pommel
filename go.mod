@@ -9,7 +9,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/SAP/go-hdb v0.14.0 // indirect
-	github.com/alexflint/go-arg v1.0.0 // indirect
+	github.com/alexflint/go-arg v1.0.0
 	github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190313125804-df99bc4cb58f // indirect
 	github.com/araddon/gou v0.0.0-20190110011759-c797efecbb61 // indirect
 	github.com/aws/aws-sdk-go v1.18.1 // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.1.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
-	github.com/hashicorp/nomad v0.8.7
+	github.com/hashicorp/nomad v0.8.7 // indirect
 	github.com/hashicorp/serf v0.8.2 // indirect
 	github.com/hashicorp/vault v1.0.3
 	github.com/hashicorp/vault-plugin-auth-alicloud v0.0.0-20190311155555-98628998247d // indirect
@@ -88,7 +88,6 @@ require (
 	github.com/ory-am/common v0.4.0 // indirect
 	github.com/ory/dockertest v3.3.4+incompatible // indirect
 	github.com/pborman/uuid v1.2.0 // indirect
-	github.com/peterbourgon/ff v1.2.0
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/pquerna/otp v1.1.0 // indirect
