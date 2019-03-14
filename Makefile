@@ -12,7 +12,7 @@ run: ## Run the cmd
 
 .PHONY: bin
 bin: ## Create binary
-	@CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo $(mod)/cmd/$(pkg)
+	@go build $(mod)/cmd/$(pkg)
 
 .PHONY: test
 test: ## Test packages
