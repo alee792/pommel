@@ -14,6 +14,6 @@ require (
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70 // indirect
+	golang.org/x/net v0.0.0-20190313220215-9f648a60d977 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 )
