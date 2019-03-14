@@ -19,7 +19,7 @@ import (
 type Args struct {
 	Addr      string `arg:"-a" help:"vault addr"`
 	TokenPath string `arg:"-t" help:"path to token"`
-	Path      string `arg:"-p,required" help:"path to value"`
+	Bucket    string `arg:"-b,required" help:"path to value"`
 	Key       string `arg:"-k,required" help:"key for value"`
 }
 
@@ -37,7 +37,8 @@ type Client struct {
 	*api.Client
 }
 
-// NewClient instantiates a Pommel instance.
+// NewClient returns a default Client using credentials
+// passed explicitly by the user.
 func NewClient(cfg *Config) (*Client, error) {
 	client, err := api.NewClient(&api.Config{
 		Address: cfg.Addr,
@@ -53,13 +54,11 @@ func NewClient(cfg *Config) (*Client, error) {
 	return c, nil
 }
 
-// CLI creates a Client using command line args.
-// This can be used as a...significantly less featured version of Vault CLI.
+// CLI creates a Client using command line args and
+// credentials found in a user's environment.
 func CLI() (*Client, *Args, error) {
 	a := new(Args)
-	if err := arg.Parse(a); err != nil {
-		return nil, nil, err
-	}
+	arg.MustParse(a)
 
 	// Defaults
 	a.TokenPath = "~/.vault-token"
@@ -76,8 +75,8 @@ func CLI() (*Client, *Args, error) {
 }
 
 // Get value from Vault.
-func (c *Client) Get(path, key string) ([]byte, error) {
-	secret, err := c.Logical().Read(path)
+func (c *Client) Get(bucket, key string) ([]byte, error) {
+	secret, err := c.Logical().Read(bucket)
 	if err != nil {
 		return nil, err
 	}
