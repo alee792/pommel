@@ -11,7 +11,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	raw, err := pom.Read(args.Path, args.Key)
+	raw, err := pom.Get(args.Path, args.Key)
 	if err != nil {
 		panic(err)
 	}

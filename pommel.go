@@ -1,6 +1,7 @@
-// Package pommel extracts blob data from a specific Vault path and key.
-// Its typical use case is reading a JSON encoded value.
-// Pommel does NOT provide authentication or a valid token.
+// Package pommel is an S3ish Vault client that interacts with Paths and Keys
+// as if Values are blob files.
+// A typical use case is reading a JSON encoded file.
+// Pommel does NOT provide authentication or retrieve a valid token.
 package pommel
 
 import (
@@ -24,7 +25,9 @@ type Args struct {
 
 // Config for a Client.
 type Config struct {
-	Addr  string
+	// Address of the Vault Server.
+	Addr string
+	// Authentication token checked by Vault.
 	Token string
 }
 
@@ -50,7 +53,8 @@ func NewClient(cfg *Config) (*Client, error) {
 	return c, nil
 }
 
-// CLI creates a Client using command line args
+// CLI creates a Client using command line args.
+// This can be used as a...significantly less featured version of Vault CLI.
 func CLI() (*Client, *Args, error) {
 	a := new(Args)
 	if err := arg.Parse(a); err != nil {
@@ -71,8 +75,8 @@ func CLI() (*Client, *Args, error) {
 	return c, a, nil
 }
 
-// Read from Vault.
-func (c *Client) Read(path, key string) ([]byte, error) {
+// Get value from Vault.
+func (c *Client) Get(path, key string) ([]byte, error) {
 	secret, err := c.Logical().Read(path)
 	if err != nil {
 		return nil, err
