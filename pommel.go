@@ -9,15 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Args from the command line.
-type Args struct {
-	Addr      string `arg:"-a" help:"vault addr"`
-	TokenPath string `arg:"-p" help:"path to token"`
-	Token     string `arg:"-t", help:"vault token:`
-	Bucket    string `arg:"-b,required" help:"path to value"`
-	Key       string `arg:"-k,required" help:"key for value"`
-}
-
 // Config for a Client.
 type Config struct {
 	// Address of the Vault Server.
