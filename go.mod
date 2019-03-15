@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/alexflint/go-arg v1.0.0
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/google/go-cmp v0.2.0
 	github.com/hashicorp/go-retryablehttp v0.5.2 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.0 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect

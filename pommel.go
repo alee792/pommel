@@ -5,12 +5,6 @@
 package pommel
 
 import (
-	"io/ioutil"
-	"os"
-	"os/user"
-	"strings"
-
-	arg "github.com/alexflint/go-arg"
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 )
@@ -18,7 +12,8 @@ import (
 // Args from the command line.
 type Args struct {
 	Addr      string `arg:"-a" help:"vault addr"`
-	TokenPath string `arg:"-t" help:"path to token"`
+	TokenPath string `arg:"-p" help:"path to token"`
+	Token     string `arg:"-t", help:"vault token:`
 	Bucket    string `arg:"-b,required" help:"path to value"`
 	Key       string `arg:"-k,required" help:"key for value"`
 }
@@ -54,24 +49,10 @@ func NewClient(cfg *Config) (*Client, error) {
 	return c, nil
 }
 
-// CLI creates a Client using command line args and
-// credentials found in a user's environment.
-func CLI() (*Client, *Args, error) {
-	a := new(Args)
-	arg.MustParse(a)
-
-	// Defaults
-	a.TokenPath = "~/.vault-token"
-
-	cfg, err := createConfig(*a)
-	if err != nil {
-		return nil, nil, err
-	}
-	c, err := NewClient(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-	return c, a, nil
+// AutoConfig checks for Config fields in  a user's environment.
+// There's no guarantee that this creates a well formed config.
+func AutoConfig() (*Config, error) {
+	return createConfig(Args{})
 }
 
 // Get value from Vault.
@@ -85,40 +66,4 @@ func (c *Client) Get(bucket, key string) ([]byte, error) {
 		return nil, errors.New("key does not exist")
 	}
 	return []byte(v.(string)), nil
-}
-
-func parseAddr(addr string) (string, error) {
-	if addr == "" {
-		addr = os.Getenv("VAULT_ADDR")
-	}
-	return addr, nil
-}
-
-func parseToken(tokenPath string) (string, error) {
-	// Expand "~" to absolute path.
-	if strings.Contains(tokenPath, "~") {
-		usr, _ := user.Current()
-		tokenPath = strings.Replace(tokenPath, "~", usr.HomeDir, -1)
-	}
-	tkn, err := ioutil.ReadFile(tokenPath)
-	if err != nil {
-		return "", errors.Wrapf(err, "invalid token path %s", tokenPath)
-	}
-	return string(tkn), nil
-}
-
-func createConfig(a Args) (*Config, error) {
-	tkn, err := parseToken(a.TokenPath)
-	if err != nil {
-		return nil, err
-	}
-	addr, err := parseAddr(a.Addr)
-	if err != nil {
-		return nil, err
-	}
-	cfg := &Config{
-		Addr:  addr,
-		Token: tkn,
-	}
-	return cfg, nil
 }
