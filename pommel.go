@@ -5,6 +5,8 @@
 package pommel
 
 import (
+	"context"
+
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 )
@@ -47,7 +49,10 @@ func AutoConfig() (*Config, error) {
 }
 
 // Get value from Vault.
-func (c *Client) Get(bucket, key string) ([]byte, error) {
+// ctx is unused because vault/api does not support it, but there's
+// a medium chance that vault/api will be dropped in favor of a standard HTTP
+// client to avoid a massive dependency graph.
+func (c *Client) Get(ctx context.Context, bucket, key string) ([]byte, error) {
 	secret, err := c.Logical().Read(bucket)
 	if err != nil {
 		return nil, err
