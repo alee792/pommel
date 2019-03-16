@@ -9,15 +9,16 @@ Vault is great for storing secrets, but it's kind of annoying to manually assert
 Pommel does not provide tokens, so users must log in or provide their own authentication tokens! It will, however, use `$VAULT_ADDR` and `~/.vault-token` as defaults if no values are explicitly passed.
 
 ### CLI
-1. `make bin` or, if you have Go installed, `go build ./cmd/pommel`.
-2. `./pommel -a="myvault.com" -t="~/.vault-token" -b="path/to/secret" -k="key"` or, if you want to use defaults, `./pommel -b="path/to/secret" -k="key"`.
-3. You'll the be prompted on whether you want to print your secret or not.
+1. `make bin` or `go build ./cmd/pommel`.
+2. `./pommel read -a="myvault.com" -t="~/.vault-token" -b="path/to/secret" -k="key"` or, if you want to use defaults, `./pommel -b="path/to/secret" -k="key"`.
+3. You'll then be prompted to print your secret to stdout!
+
 ### API
 ```go
 func main() {
     // Use user defaults.
     pom := pommel.NewClient(nil)
-    err := pom.Get("fake", "even_faker.json")
+    err := pom.Get(context.Background(), "fake", "even_faker.json")
 	if err != nil {
 		panic(err)
 	}
