@@ -5,7 +5,9 @@
 package pommel
 
 import (
+	"bytes"
 	"context"
+	"io"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
@@ -22,7 +24,7 @@ type Config struct {
 // Client resolves secrets from Vault.
 type Client struct {
 	Config *Config
-	*api.Client
+	vault  *api.Client
 }
 
 // NewClient returns a default Client using credentials
@@ -36,24 +38,18 @@ func NewClient(cfg *Config) (*Client, error) {
 	}
 	c := &Client{
 		Config: cfg,
-		Client: client,
+		vault:  client,
 	}
-	c.SetToken(c.Config.Token)
+	c.vault.SetToken(c.Config.Token)
 	return c, nil
-}
-
-// AutoConfig checks for Config fields in  a user's environment.
-// There's no guarantee that this creates a well formed config.
-func AutoConfig() (*Config, error) {
-	return createConfig(Args{})
 }
 
 // Get value from Vault.
 // ctx is unused because vault/api does not support it, but there's
 // a medium chance that vault/api will be dropped in favor of a standard HTTP
 // client to avoid a massive dependency graph.
-func (c *Client) Get(ctx context.Context, bucket, key string) ([]byte, error) {
-	secret, err := c.Logical().Read(bucket)
+func (c *Client) Get(ctx context.Context, bucket, key string) (io.Reader, error) {
+	secret, err := c.vault.Logical().Read(bucket)
 	if err != nil {
 		return nil, err
 	}
@@ -61,5 +57,5 @@ func (c *Client) Get(ctx context.Context, bucket, key string) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("key does not exist")
 	}
-	return []byte(v.(string)), nil
+	return bytes.NewBufferString(v.(string)), nil
 }
