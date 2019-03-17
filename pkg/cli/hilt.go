@@ -48,6 +48,13 @@ func NewHilt() *Hilt {
 	return h
 }
 
+// Provider returns a Provider for a given scheme.
+// This abstraction prevents consumers from fiddling
+// with thread-unfsafe internals, like `providers`.
+func (h *Hilt) Provider(scheme string) *Provider {
+	return h.providers[scheme]
+}
+
 // AddProvider to Hilt's Provider map and schemes.
 func (h *Hilt) AddProvider(p *Provider) {
 	h.mux.Lock()
@@ -60,5 +67,11 @@ func (h *Hilt) AddProvider(p *Provider) {
 func (h *Hilt) RemoveProvider(scheme string) {
 	h.mux.Lock()
 	defer h.mux.Unlock()
+	for i, s := range h.schemes {
+		if s == scheme {
+			h.schemes = append(h.schemes[:i], h.schemes[:i+1]...)
+			return
+		}
+	}
 	delete(h.providers, scheme)
 }
