@@ -55,7 +55,7 @@ func GetCmd(h *cli.Hilt) *cobra.Command {
 		Aliases: []string{"g", "read", "r"},
 		Short:   "get value from Vault",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			raw, err := h.Providers["vault"].Get(context.Background(), h.Bucket, h.Key)
+			raw, err := h.Provider("vault").Client.Get(context.Background(), h.Bucket, h.Key)
 			if err != nil {
 				return errors.Wrap(err, "Get failed")
 			}
@@ -136,17 +136,22 @@ func preRootAction(h *cli.Hilt) cmder {
 		if err != nil {
 			return errors.Wrap(err, "Config creation failed")
 		}
-		h.Handlers["vault"], err = pommel.NewClient(cfg)
+		client, err := pommel.NewClient(cfg)
 		if err != nil {
-			return errors.Wrap(err, "Client creation failed")
+			return errors.Wrap(err, "Vault client creation failed")
 		}
+
+		h.AddProvider(&cli.Provider{
+			Scheme: "vault",
+			Client: client,
+		})
 		return nil
 	}
 }
 
 func rootAction(h *cli.Hilt) cmder {
 	return func(cmd *cobra.Command, args []string) error {
-		fmt.Printf("%+v\n%+v\n", h.Handlers["vault"], h.Flags)
+		fmt.Printf("%+v\n%+v\n", h.Provider("vault").Client, h.Flags)
 		fmt.Println(cmd.UsageString())
 		return nil
 	}
@@ -159,7 +164,7 @@ func validateSrcDst(h *cli.Hilt, args []string) error {
 		return errors.New("requires exactly two args")
 	}
 	// Verbose logic for verbose errors.
-	if !hasValidPrefix(args[0], h.Schemes) && !hasValidPrefix(args[1], h.Schemes) {
+	if !hasValidPrefix(args[0], h.Schemes()) && !hasValidPrefix(args[1], h.Schemes()) {
 		return errors.New("requires valid URI")
 	}
 	return nil

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/alee792/pommel/internal/cli/cobra"
+	"github.com/alee792/pommel/internal/cobra"
 )
 
 func main() {

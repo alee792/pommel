@@ -48,9 +48,15 @@ func NewHilt() *Hilt {
 	return h
 }
 
+// Schemes returns the Hilt's current schemes.
+// See comments on Provider.
+func (h *Hilt) Schemes() []string {
+	return h.schemes
+}
+
 // Provider returns a Provider for a given scheme.
 // This abstraction prevents consumers from fiddling
-// with thread-unfsafe internals, like `providers`.
+// with thread-unfsafe internals.
 func (h *Hilt) Provider(scheme string) *Provider {
 	return h.providers[scheme]
 }
