@@ -10,59 +10,25 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/alee792/pommel/pkg/cli"
+
 	"github.com/alee792/pommel"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-// Pommeler defines a Vault client's expected
-// capabilities with an S3-like interface.
-type Pommeler interface {
-	Get(ctx context.Context, bucket, key string) (io.Reader, error)
-	// Put(ctx context.Context, bucket, key string, body io.Reader) error
-}
-
-// Hilt allows Pommel and Cobra dependencies to be shared and reused.
-type Hilt struct {
-	*Flags
-	// TODO: Use iota?
-	Schemes  []string
-	Handlers map[string]Pommeler
-}
-
 type cmder func(*cobra.Command, []string) error
-
-// Flags from the CLI.
-type Flags struct {
-	Addr      string `arg:"-a" help:"vault addr"`
-	TokenPath string `arg:"-p" help:"path to token"`
-	Token     string `arg:"-t" help:"vault token"`
-	Bucket    string `arg:"-b,required" help:"path to value"`
-	Key       string `arg:"-k,required" help:"key for value"`
-}
-
-// NewHilt creates a Hilt with an Pommeler, shared flags and validators.
-// Pommeler and Flags are empty because the RootCmd resolves them.
-func NewHilt() *Hilt {
-	return &Hilt{
-		Flags:   &Flags{},
-		Schemes: []string{"vault"},
-		Handlers: map[string]Pommeler{
-			"vault": &pommel.Client{},
-		},
-	}
-}
 
 // RootCmd returns a root command with sensible defaults.
 func RootCmd() *cobra.Command {
-	hilt := NewHilt()
+	hilt := cli.NewHilt()
 
 	root := &cobra.Command{
 		Use:   "pommel",
 		Short: "Pommel interacts with Vault as if it were a blob store",
 		// Used to instantiate a client.
-		PersistentPreRunE: hilt.preRootAction(),
-		RunE:              hilt.rootAction(),
+		PersistentPreRunE: preRootAction(hilt),
+		RunE:              rootAction(hilt),
 	}
 
 	// Required flags. Will be replaced by args.
@@ -77,19 +43,19 @@ func RootCmd() *cobra.Command {
 	root.PersistentFlags().StringVarP(&hilt.TokenPath, "tknp", "p", "~/.vault-token", "Path to Vault auth token.")
 
 	// Subcommands.
-	root.AddCommand(hilt.GetCmd())
+	root.AddCommand(GetCmd(hilt))
 
 	return root
 }
 
 // GetCmd sets up the cmd for a Pommel Get.
-func (h *Hilt) GetCmd() *cobra.Command {
+func GetCmd(h *cli.Hilt) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Aliases: []string{"g", "read", "r"},
 		Short:   "get value from Vault",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			raw, err := h.Handlers["vault"].Get(context.Background(), h.Bucket, h.Key)
+			raw, err := h.Providers["vault"].Get(context.Background(), h.Bucket, h.Key)
 			if err != nil {
 				return errors.Wrap(err, "Get failed")
 			}
@@ -106,13 +72,13 @@ func (h *Hilt) GetCmd() *cobra.Command {
 }
 
 // CpCmd sets up the cmd for copying files.
-func (h *Hilt) CpCmd() *cobra.Command {
+func CpCmd(h *cli.Hilt) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "cp",
 		Aliases: []string{"copy"},
 		Short:   "copy files b/n locations",
 		Args: func(cmd *cobra.Command, args []string) error {
-			return h.validateSrcDst(args)
+			return validateSrcDst(h, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return nil
@@ -123,7 +89,7 @@ func (h *Hilt) CpCmd() *cobra.Command {
 
 // createConfig from Args and attempt to set default variables
 // from a user's enivronment.
-func createConfig(f *Flags) (*pommel.Config, error) {
+func createConfig(f *cli.Flags) (*pommel.Config, error) {
 	if f.TokenPath == "" {
 		f.TokenPath = "~/.vault-token"
 	}
@@ -159,7 +125,7 @@ func getToken(tokenPath string) (string, error) {
 	return string(tkn), nil
 }
 
-func (h *Hilt) preRootAction() cmder {
+func preRootAction(h *cli.Hilt) cmder {
 	return func(cmd *cobra.Command, args []string) error {
 		// Additional defaults.
 		if h.Addr == "" {
@@ -178,7 +144,7 @@ func (h *Hilt) preRootAction() cmder {
 	}
 }
 
-func (h *Hilt) rootAction() cmder {
+func rootAction(h *cli.Hilt) cmder {
 	return func(cmd *cobra.Command, args []string) error {
 		fmt.Printf("%+v\n%+v\n", h.Handlers["vault"], h.Flags)
 		fmt.Println(cmd.UsageString())
@@ -188,7 +154,7 @@ func (h *Hilt) rootAction() cmder {
 
 // Either the soruce or destination location must be a valid URI.
 // We're not in the business of local file managment here!
-func (h *Hilt) validateSrcDst(args []string) error {
+func validateSrcDst(h *cli.Hilt, args []string) error {
 	if len(args) != 2 {
 		return errors.New("requires exactly two args")
 	}
