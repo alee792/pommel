@@ -15,7 +15,7 @@ require (
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	github.com/spf13/cobra v0.0.3
+	github.com/spf13/cobra v0.0.4-0.20190311125509-ba1052d4cbce
 	github.com/spf13/viper v1.3.2
 	github.com/urfave/cli v1.20.0
 	golang.org/x/net v0.0.0-20190313220215-9f648a60d977 // indirect

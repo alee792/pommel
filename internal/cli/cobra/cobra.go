@@ -7,17 +7,16 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/alee792/pommel"
-
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-// Pommeler defines a Vault clients expected
-// capabilities in an S3-like interface.
+// Pommeler defines a Vault client's expected
+// capabilities with an S3-like interface.
 type Pommeler interface {
 	Get(ctx context.Context, bucket, key string) (io.Reader, error)
 	// Put(ctx context.Context, bucket, key string, body io.Reader) error
@@ -25,8 +24,10 @@ type Pommeler interface {
 
 // Hilt allows Pommel and Cobra dependencies to be shared and reused.
 type Hilt struct {
-	Pommeler
 	*Flags
+	// TODO: Use iota?
+	Schemes  []string
+	Handlers map[string]Pommeler
 }
 
 type cmder func(*cobra.Command, []string) error
@@ -40,12 +41,21 @@ type Flags struct {
 	Key       string `arg:"-k,required" help:"key for value"`
 }
 
+// NewHilt creates a Hilt with an Pommeler, shared flags and validators.
+// Pommeler and Flags are empty because the RootCmd resolves them.
+func NewHilt() *Hilt {
+	return &Hilt{
+		Flags:   &Flags{},
+		Schemes: []string{"vault"},
+		Handlers: map[string]Pommeler{
+			"vault": &pommel.Client{},
+		},
+	}
+}
+
 // RootCmd returns a root command with sensible defaults.
 func RootCmd() *cobra.Command {
-	hilt := Hilt{
-		Pommeler: &pommel.Client{},
-		Flags:    &Flags{},
-	}
+	hilt := NewHilt()
 
 	root := &cobra.Command{
 		Use:   "pommel",
@@ -55,7 +65,7 @@ func RootCmd() *cobra.Command {
 		RunE:              hilt.rootAction(),
 	}
 
-	// Required flags.
+	// Required flags. Will be replaced by args.
 	root.PersistentFlags().StringVarP(&hilt.Bucket, "bucket", "b", "", "A path in Vault.")
 	root.PersistentFlags().StringVarP(&hilt.Key, "key", "k", "", "A key in Vault.")
 	root.MarkPersistentFlagRequired("bucket")
@@ -72,14 +82,14 @@ func RootCmd() *cobra.Command {
 	return root
 }
 
-// GetCmd value from Vault.
+// GetCmd sets up the cmd for a Pommel Get.
 func (h *Hilt) GetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get",
 		Aliases: []string{"g", "read", "r"},
 		Short:   "get value from Vault",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			raw, err := h.Get(context.Background(), h.Bucket, h.Key)
+			raw, err := h.Handlers["vault"].Get(context.Background(), h.Bucket, h.Key)
 			if err != nil {
 				return errors.Wrap(err, "Get failed")
 			}
@@ -89,6 +99,22 @@ func (h *Hilt) GetCmd() *cobra.Command {
 			if in == "y" {
 				io.Copy(os.Stdout, raw)
 			}
+			return nil
+		},
+	}
+	return cmd
+}
+
+// CpCmd sets up the cmd for copying files.
+func (h *Hilt) CpCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "cp",
+		Aliases: []string{"copy"},
+		Short:   "copy files b/n locations",
+		Args: func(cmd *cobra.Command, args []string) error {
+			return h.validateSrcDst(args)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			return nil
 		},
 	}
@@ -144,7 +170,7 @@ func (h *Hilt) preRootAction() cmder {
 		if err != nil {
 			return errors.Wrap(err, "Config creation failed")
 		}
-		h.Pommeler, err = pommel.NewClient(cfg)
+		h.Handlers["vault"], err = pommel.NewClient(cfg)
 		if err != nil {
 			return errors.Wrap(err, "Client creation failed")
 		}
@@ -154,8 +180,45 @@ func (h *Hilt) preRootAction() cmder {
 
 func (h *Hilt) rootAction() cmder {
 	return func(cmd *cobra.Command, args []string) error {
-		fmt.Printf("%+v\n%+v\n", h.Pommeler, h.Flags)
+		fmt.Printf("%+v\n%+v\n", h.Handlers["vault"], h.Flags)
 		fmt.Println(cmd.UsageString())
 		return nil
 	}
+}
+
+// Either the soruce or destination location must be a valid URI.
+// We're not in the business of local file managment here!
+func (h *Hilt) validateSrcDst(args []string) error {
+	if len(args) != 2 {
+		return errors.New("requires exactly two args")
+	}
+	// Verbose logic for verbose errors.
+	if !hasValidPrefix(args[0], h.Schemes) && !hasValidPrefix(args[1], h.Schemes) {
+		return errors.New("requires valid URI")
+	}
+	return nil
+}
+
+func hasValidPrefix(s string, pp []string) bool {
+	for _, p := range pp {
+		if strings.HasPrefix(s, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func parseURI(uri string) (schemes, bucket, key string, err error) {
+	sep := "://"
+	ss := strings.Split(uri, sep)
+	if len(ss) != 2 {
+		return "", "", "", errors.New("invalid uri")
+	}
+	scheme, path := ss[0], ss[1]
+
+	bucket, key = filepath.Split(path)
+	if bucket == "" || key == "" {
+		return "", "", "", errors.New("bucket and key required")
+	}
+	return scheme, bucket, key, err
 }
