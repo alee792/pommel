@@ -4,11 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"os/user"
-	"path/filepath"
-	"strings"
 
 	"github.com/alee792/pommel/pkg/cli"
 
@@ -78,51 +74,30 @@ func CpCmd(h *cli.Hilt) *cobra.Command {
 		Aliases: []string{"copy"},
 		Short:   "copy files b/n locations",
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validateSrcDst(h, args)
+			return cli.ValidateSrcDst(h, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+			srcS, srcB, srcK, err := cli.ParseURI(args[0])
+			if err != nil {
+				return errors.Wrap(err, "could not parse src")
+			}
+			dstS, dstB, dstK, err := cli.ParseURI(args[1])
+			if err != nil {
+				return errors.Wrap(err, "could not parse dst")
+			}
+
+			r, err := h.Provider(srcS).Client.Get(ctx, srcB, srcK)
+			if err != nil {
+				return errors.Wrap(err, "could not get from src")
+			}
+			if err := h.Provider(dstS).Client.Put(ctx, r, dstB, dstK); err != nil {
+				return errors.Wrap(err, "could not put to dst")
+			}
 			return nil
 		},
 	}
 	return cmd
-}
-
-// createConfig from Args and attempt to set default variables
-// from a user's enivronment.
-func createConfig(f *cli.Flags) (*pommel.Config, error) {
-	if f.TokenPath == "" {
-		f.TokenPath = "~/.vault-token"
-	}
-
-	if f.Token == "" {
-		tkn, err := getToken(f.TokenPath)
-		if err != nil {
-			return nil, err
-		}
-		f.Token = tkn
-	}
-
-	if f.Addr == "" {
-		f.Addr = os.Getenv("VAULT_ADDR")
-	}
-	cfg := &pommel.Config{
-		Addr:  f.Addr,
-		Token: f.Token,
-	}
-	return cfg, nil
-}
-
-func getToken(tokenPath string) (string, error) {
-	// Expand "~" to absolute path.
-	if strings.Contains(tokenPath, "~") {
-		usr, _ := user.Current()
-		tokenPath = strings.Replace(tokenPath, "~", usr.HomeDir, -1)
-	}
-	tkn, err := ioutil.ReadFile(tokenPath)
-	if err != nil {
-		return "", errors.Wrapf(err, "invalid token path %s", tokenPath)
-	}
-	return string(tkn), nil
 }
 
 func preRootAction(h *cli.Hilt) cmder {
@@ -132,7 +107,7 @@ func preRootAction(h *cli.Hilt) cmder {
 			h.Addr = os.Getenv("VAULT_ADDR")
 		}
 
-		cfg, err := createConfig(h.Flags)
+		cfg, err := cli.CreateConfig(h.Flags)
 		if err != nil {
 			return errors.Wrap(err, "Config creation failed")
 		}
@@ -155,41 +130,4 @@ func rootAction(h *cli.Hilt) cmder {
 		fmt.Println(cmd.UsageString())
 		return nil
 	}
-}
-
-// Either the soruce or destination location must be a valid URI.
-// We're not in the business of local file managment here!
-func validateSrcDst(h *cli.Hilt, args []string) error {
-	if len(args) != 2 {
-		return errors.New("requires exactly two args")
-	}
-	// Verbose logic for verbose errors.
-	if !hasValidPrefix(args[0], h.Schemes()) && !hasValidPrefix(args[1], h.Schemes()) {
-		return errors.New("requires valid URI")
-	}
-	return nil
-}
-
-func hasValidPrefix(s string, pp []string) bool {
-	for _, p := range pp {
-		if strings.HasPrefix(s, p) {
-			return true
-		}
-	}
-	return false
-}
-
-func parseURI(uri string) (schemes, bucket, key string, err error) {
-	sep := "://"
-	ss := strings.Split(uri, sep)
-	if len(ss) != 2 {
-		return "", "", "", errors.New("invalid uri")
-	}
-	scheme, path := ss[0], ss[1]
-
-	bucket, key = filepath.Split(path)
-	if bucket == "" || key == "" {
-		return "", "", "", errors.New("bucket and key required")
-	}
-	return scheme, bucket, key, err
 }
