@@ -37,7 +37,9 @@ Pommel is very much a WIP and was created to satisfy a specific workflow: retrie
 Next up:
 
 * Writing :pen:
+* PGP encryption :lock:
 
 ### Related Alternatives and Prior Art
 [MapStructure](https://github.com/mitchellh/mapstructure) marshals a map[string]interface{} into a struct, which, bo be honest, is probably sufficient for most use cases.
-[Viper](https://github.com/spf13/viper) essentially does the same thing...but only for etcd and Consul. I didn't realize this until I started using Cobra for the CLI...
+[Viper](https://github.com/spf13/viper) essentially does the same thing, but only for etcd and Consul. It's based on...
+[crypt](https://github.com/xordataexchange/crypt), which has been out of maintenance for a while.
