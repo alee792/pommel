@@ -62,8 +62,19 @@ func NewHilt() *Hilt {
 
 // CLI returns flags from the command line.
 func CLI() (*Flags, error) {
+	f := &Flags{}
+	// Required flags. Will be replaced by args.
+	pflag.StringVarP(&f.Bucket, "bucket", "b", "", "A path in Vault.")
+	pflag.StringVarP(&f.Key, "key", "k", "", "A key in Vault.")
+
+	// Optional flags.
+	pflag.StringVarP(&f.Addr, "addr", "a", "", "Address of Vault server.")
+	pflag.StringVarP(&f.Token, "tkn", "t", "", "Vault auth token.")
+	pflag.StringVarP(&f.TokenPath, "tknp", "p", "~/.vault-token", "Path to Vault auth token.")
+	pflag.BoolVarP(&f.HidePrompt, "hide", "h", false, "Hide prompt to print to stdout.")
+
 	pflag.Parse()
-	return nil, nil
+	return f, nil
 }
 
 // Schemes returns the Hilt's current schemes.
