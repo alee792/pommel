@@ -37,6 +37,7 @@ func RootCmd() *cobra.Command {
 	root.PersistentFlags().StringVarP(&hilt.Addr, "addr", "a", "", "Address of Vault server.")
 	root.PersistentFlags().StringVarP(&hilt.Token, "tkn", "t", "", "Vault auth token.")
 	root.PersistentFlags().StringVarP(&hilt.TokenPath, "tknp", "p", "~/.vault-token", "Path to Vault auth token.")
+	root.PersistentFlags().BoolVarP(&hilt.HidePrompt, "hide", "h", false, "Hide prompt to print to stdout.")
 
 	// Subcommands.
 	root.AddCommand(GetCmd(hilt))
@@ -55,8 +56,16 @@ func GetCmd(h *cli.Hilt) *cobra.Command {
 			if err != nil {
 				return errors.Wrap(err, "Get failed")
 			}
-			fmt.Println("Do you want to display this secret? (y/n)")
+
+			// Don't be clever...
 			var in string
+			if h.HidePrompt {
+				io.Copy(os.Stdout, raw)
+				return nil
+			}
+
+			// Show Prompt
+			fmt.Println("Do you want to display this secret? (y/n)")
 			fmt.Scanln(&in)
 			if in == "y" {
 				io.Copy(os.Stdout, raw)

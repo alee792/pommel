@@ -39,11 +39,12 @@ type Client interface {
 
 // Flags from the CLI.
 type Flags struct {
-	Addr      string `arg:"-a" help:"vault addr"`
-	TokenPath string `arg:"-p" help:"path to token"`
-	Token     string `arg:"-t" help:"vault token"`
-	Bucket    string `arg:"-b,required" help:"path to value"`
-	Key       string `arg:"-k,required" help:"key for value"`
+	Addr       string `arg:"-a" help:"vault addr"`
+	TokenPath  string `arg:"-p" help:"path to token"`
+	Token      string `arg:"-t" help:"vault token"`
+	Bucket     string `arg:"-b,required" help:"path to value"`
+	Key        string `arg:"-k,required" help:"key for value"`
+	HidePrompt bool
 }
 
 // NewHilt creates a Hilt with providers, shared flags and validators.

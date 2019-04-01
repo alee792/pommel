@@ -53,6 +53,9 @@ func (c *Client) Get(ctx context.Context, bucket, key string) (io.Reader, error)
 	if err != nil {
 		return nil, err
 	}
+	if secret == nil || secret.Data == nil {
+		return nil, errors.New("no data")
+	}
 	v, ok := secret.Data[key]
 	if !ok {
 		return nil, errors.New("key does not exist")
