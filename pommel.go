@@ -53,9 +53,50 @@ func (c *Client) Get(ctx context.Context, bucket, key string) (io.Reader, error)
 	if err != nil {
 		return nil, err
 	}
+	if secret == nil || secret.Data == nil {
+		return nil, errors.New("no data")
+	}
 	v, ok := secret.Data[key]
 	if !ok {
 		return nil, errors.New("key does not exist")
 	}
 	return bytes.NewBufferString(v.(string)), nil
+}
+
+// Put value to Vault.
+func (c *Client) Put(ctx context.Context, r io.Reader, bucket, key string) error {
+	w := c.Writer(ctx, bucket, key)
+	_, err := io.Copy(w, r)
+	if err != nil {
+		return errors.Wrap(err, "copy failed")
+	}
+	return nil
+}
+
+// Writer for Vault []byte into bucket/keys.
+type Writer struct {
+	bucket string
+	key    string
+	*Client
+}
+
+// Write to bucket location.
+func (w *Writer) Write(p []byte) (int, error) {
+	secret := map[string]interface{}{
+		w.key: p,
+	}
+	_, err := w.vault.Logical().Write(w.bucket, secret)
+	if err != nil {
+		return 0, errors.Wrap(err, "Vault write failed")
+	}
+	return len(p), nil
+}
+
+// Writer is created at a bucket and key.
+func (c *Client) Writer(ctx context.Context, bucket, key string) *Writer {
+	return &Writer{
+		bucket: bucket,
+		key:    key,
+		Client: c,
+	}
 }
