@@ -60,21 +60,24 @@ func NewHilt() *Hilt {
 	return h
 }
 
-// CLI returns flags from the command line.
-func CLI() (*Flags, error) {
-	f := &Flags{}
+// Get returns reader from CLI flags.
+func Get() (io.Reader, error) {
+	hilt := NewHilt()
 	// Required flags. Will be replaced by args.
-	pflag.StringVarP(&f.Bucket, "bucket", "b", "", "A path in Vault.")
-	pflag.StringVarP(&f.Key, "key", "k", "", "A key in Vault.")
+	pflag.StringVarP(&hilt.Bucket, "bucket", "b", "", "A path in Vault.")
+	pflag.StringVarP(&hilt.Key, "key", "k", "", "A key in Vault.")
 
 	// Optional flags.
-	pflag.StringVarP(&f.Addr, "addr", "a", "", "Address of Vault server.")
-	pflag.StringVarP(&f.Token, "tkn", "t", "", "Vault auth token.")
-	pflag.StringVarP(&f.TokenPath, "tknp", "p", "~/.vault-token", "Path to Vault auth token.")
-	pflag.BoolVarP(&f.HidePrompt, "hide", "h", false, "Hide prompt to print to stdout.")
+	pflag.StringVarP(&hilt.Addr, "addr", "a", "", "Address of Vault server.")
+	pflag.StringVarP(&hilt.Token, "tkn", "t", "", "Vault auth token.")
+	pflag.StringVarP(&hilt.TokenPath, "tknp", "p", "~/.vault-token", "Path to Vault auth token.")
+	pflag.BoolVarP(&hilt.HidePrompt, "hide", "h", false, "Hide prompt to print to stdout.")
 
-	pflag.Parse()
-	return f, nil
+	raw, err := hilt.Provider("vault").Client.Get(context.Background(), hilt.Bucket, hilt.Key)
+	if err != nil {
+		return nil, errors.Wrap(err, "Get failed")
+	}
+	return raw, nil
 }
 
 // Schemes returns the Hilt's current schemes.

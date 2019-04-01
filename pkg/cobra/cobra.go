@@ -18,7 +18,6 @@ type cmder func(*cobra.Command, []string) error
 // RootCmd returns a root command with sensible defaults.
 func RootCmd() *cobra.Command {
 	hilt := cli.NewHilt()
-
 	root := &cobra.Command{
 		Use:   "pommel",
 		Short: "Pommel interacts with Vault as if it were a blob store",
@@ -27,6 +26,16 @@ func RootCmd() *cobra.Command {
 		RunE:              rootAction(hilt),
 	}
 
+	root = SetFlags(hilt, root)
+
+	// Subcommands.
+	root.AddCommand(GetCmd(hilt))
+
+	return root
+}
+
+// SetFlags for a cmd and its hilt using default flags.
+func SetFlags(hilt *cli.Hilt, root *cobra.Command) *cobra.Command {
 	// Required flags. Will be replaced by args.
 	root.PersistentFlags().StringVarP(&hilt.Bucket, "bucket", "b", "", "A path in Vault.")
 	root.PersistentFlags().StringVarP(&hilt.Key, "key", "k", "", "A key in Vault.")
@@ -38,9 +47,6 @@ func RootCmd() *cobra.Command {
 	root.PersistentFlags().StringVarP(&hilt.Token, "tkn", "t", "", "Vault auth token.")
 	root.PersistentFlags().StringVarP(&hilt.TokenPath, "tknp", "p", "~/.vault-token", "Path to Vault auth token.")
 	root.PersistentFlags().BoolVarP(&hilt.HidePrompt, "hide", "h", false, "Hide prompt to print to stdout.")
-
-	// Subcommands.
-	root.AddCommand(GetCmd(hilt))
 
 	return root
 }
