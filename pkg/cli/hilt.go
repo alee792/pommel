@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/spf13/pflag"
+
 	"github.com/pkg/errors"
 
 	"github.com/alee792/pommel"
@@ -56,6 +58,12 @@ func NewHilt() *Hilt {
 		mux:       &sync.Mutex{},
 	}
 	return h
+}
+
+// CLI returns flags from the command line.
+func CLI() (*Flags, error) {
+	pflag.Parse()
+	return nil, nil
 }
 
 // Schemes returns the Hilt's current schemes.
