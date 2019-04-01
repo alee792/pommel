@@ -74,6 +74,24 @@ func Get() (io.Reader, error) {
 	pflag.BoolVarP(&hilt.HidePrompt, "hide", "h", false, "Hide prompt to print to stdout.")
 
 	pflag.Parse()
+	// Additional defaults.
+	if hilt.Addr == "" {
+		hilt.Addr = os.Getenv("VAULT_ADDR")
+	}
+
+	cfg, err := CreateConfig(hilt.Flags)
+	if err != nil {
+		return nil, errors.Wrap(err, "Config creation failed")
+	}
+	client, err := pommel.NewClient(cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "Vault client creation failed")
+	}
+
+	hilt.AddProvider(&Provider{
+		Scheme: "vault",
+		Client: client,
+	})
 
 	if hilt.Bucket == "" || hilt.Key == "" {
 		return nil, errors.New("must provide bucket and key")
