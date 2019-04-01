@@ -75,7 +75,7 @@ func Get() (io.Reader, error) {
 
 	pflag.Parse()
 
-	if &hilt.Bucket == nil || &hilt.Key == nil {
+	if hilt.Bucket == "" || hilt.Key == "" {
 		return nil, errors.New("must provide bucket and key")
 	}
 
