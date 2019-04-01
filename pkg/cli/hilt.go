@@ -75,26 +75,13 @@ func Get() (io.Reader, error) {
 
 	pflag.Parse()
 	// Additional defaults.
-	if hilt.Addr == "" {
-		hilt.Addr = os.Getenv("VAULT_ADDR")
-	}
-
-	cfg, err := CreateConfig(hilt.Flags)
-	if err != nil {
-		return nil, errors.Wrap(err, "Config creation failed")
-	}
-	client, err := pommel.NewClient(cfg)
-	if err != nil {
-		return nil, errors.Wrap(err, "Vault client creation failed")
-	}
-
-	hilt.AddProvider(&Provider{
-		Scheme: "vault",
-		Client: client,
-	})
 
 	if hilt.Bucket == "" || hilt.Key == "" {
 		return nil, errors.New("must provide bucket and key")
+	}
+
+	if err := hilt.AddVault(); err != nil {
+		return nil, errors.Wrap(err, "vault setup failed")
 	}
 
 	raw, err := hilt.Provider("vault").Client.Get(context.Background(), hilt.Bucket, hilt.Key)
@@ -102,6 +89,27 @@ func Get() (io.Reader, error) {
 		return nil, errors.Wrap(err, "Get failed")
 	}
 	return raw, nil
+}
+
+// AddVault as a provider.
+func (h *Hilt) AddVault() error {
+	if h.Addr == "" {
+		h.Addr = os.Getenv("VAULT_ADDR")
+	}
+
+	cfg, err := CreateConfig(h.Flags)
+	if err != nil {
+		return errors.Wrap(err, "Config creation failed")
+	}
+	client, err := pommel.NewClient(cfg)
+	if err != nil {
+		return errors.Wrap(err, "Vault client creation failed")
+	}
+	h.AddProvider(&Provider{
+		Scheme: "vault",
+		Client: client,
+	})
+	return nil
 }
 
 // Schemes returns the Hilt's current schemes.
