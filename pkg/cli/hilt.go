@@ -75,6 +75,10 @@ func Get() (io.Reader, error) {
 
 	pflag.Parse()
 
+	if &hilt.Bucket == nil || &hilt.Key == nil {
+		return nil, errors.New("must provide bucket and key")
+	}
+
 	raw, err := hilt.Provider("vault").Client.Get(context.Background(), hilt.Bucket, hilt.Key)
 	if err != nil {
 		return nil, errors.Wrap(err, "Get failed")
