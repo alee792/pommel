@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -97,7 +96,6 @@ func Get() (io.Reader, error) {
 	if hilt.Bucket == "" || hilt.Key == "" {
 		return nil, errors.New("must provide bucket and key")
 	}
-	fmt.Println(hilt.Bucket, hilt.Key)
 
 	raw, err := hilt.Provider("vault").Client.Get(context.Background(), hilt.Bucket, hilt.Key)
 	if err != nil {
