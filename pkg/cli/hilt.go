@@ -73,6 +73,8 @@ func Get() (io.Reader, error) {
 	pflag.StringVarP(&hilt.TokenPath, "tknp", "p", "~/.vault-token", "Path to Vault auth token.")
 	pflag.BoolVarP(&hilt.HidePrompt, "hide", "h", false, "Hide prompt to print to stdout.")
 
+	pflag.Parse()
+
 	raw, err := hilt.Provider("vault").Client.Get(context.Background(), hilt.Bucket, hilt.Key)
 	if err != nil {
 		return nil, errors.Wrap(err, "Get failed")
