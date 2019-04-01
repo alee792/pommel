@@ -3,7 +3,6 @@ module github.com/alee792/pommel
 go 1.12
 
 require (
-	git.target.com/AE-Authentication/EnterpriseAuth v0.0.0-20190315205149-40393a85eb1c // indirect
 	github.com/alexflint/go-arg v1.0.0
 	github.com/armon/go-proxyproto v0.0.0-20190211145416-68259f75880e // indirect
 	github.com/golang/snappy v0.0.1 // indirect
